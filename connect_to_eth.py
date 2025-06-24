@@ -11,8 +11,7 @@ infura_url = f"https://mainnet.infura.io/v3/{infura_token}"
 '''
 
 def connect_to_eth():
-	infura_token = "d6a4f0802df242cc9219f9d77b2e4ff8"
-	url = f"https://mainnet.infura.io/v3/{infura_token}"
+	url = f"https://mainnet.infura.io/v3/d6a4f0802df242cc9219f9d77b2e4ff8"
 	w3 = Web3(HTTPProvider(url))
 	assert w3.is_connected(), f"Failed to connect to provider at {url}"
 	return w3
@@ -24,9 +23,7 @@ def connect_with_middleware(contract_json):
 		d = d['bsc']
 		address = d['address']
 		abi = d['abi']
-
-	infura_token = "d6a4f0802df242cc9219f9d77b2e4ff8"
-	bnb_testnet_url = "	https://bsc-testnet.infura.io/v3/{infura_token}"
+	bnb_testnet_url = "	https://bsc-testnet.infura.io/v3/d6a4f0802df242cc9219f9d77b2e4ff8"
 	w3 = Web3(HTTPProvider(bnb_testnet_url))
 	assert w3.is_connected(), f"Failed to connect to BNB testnet at {bnb_testnet_url}"
 
