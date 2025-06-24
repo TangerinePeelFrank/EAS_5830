@@ -3,7 +3,6 @@ import json
 
 def pin_to_ipfs(data):
 	assert isinstance(data,dict), f"Error pin_to_ipfs expects a dictionary"
-	#YOUR CODE HERE
 	json_data = json.dumps(data)
     
 	headers = {
@@ -24,7 +23,7 @@ def pin_to_ipfs(data):
 
 def get_from_ipfs(cid,content_type="json"):
 	assert isinstance(cid,str), f"get_from_ipfs accepts a cid in the form of a string"
-	url = f"{"https://gateway.pinata.cloud/ipfs/"}{cid}"
+	url = f"{'https://gateway.pinata.cloud/ipfs/'}{cid}"
     
 	response = requests.get(url)
     
