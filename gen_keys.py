@@ -19,7 +19,7 @@ def sign_message(challenge, filename="secret_key.txt"):
     w3 = Web3()
     message = encode_defunct(challenge)
 
-    acct = w3.eth.account.from_key(key)
+    acct = w3.eth.account.from_key(key[0])
     eth_addr = acct.address
 
     sig = acct.sign_message(message)
