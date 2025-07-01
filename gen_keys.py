@@ -22,7 +22,7 @@ def sign_message(challenge, filename="secret_key.txt"):
     acct = w3.eth.account.from_key(key[0])
     eth_addr = acct.address
 
-    sig = acct.sign_message(message)
+    signed_message = acct.sign_message(message)
 
 
 
