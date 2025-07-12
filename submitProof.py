@@ -70,7 +70,6 @@ def convert_leaves(primes_list):
 
     leaves = []
     for p in primes_list:
-        # Convert directly to bytes32 (no additional hashing)
         b = int.to_bytes(p, 32, 'big')
         leaves.append(b)
         
@@ -88,10 +87,7 @@ def build_merkle(leaves):
     if not leaves:
         return []
 
-    # Validate leaves are bytes32 (32 bytes)
-    assert all(isinstance(leaf, bytes) and len(leaf) == 32 for leaf in leaves), "Leaves must be bytes32"
-
-    tree = [leaves.copy()]  # Start with copy of leaves
+    tree = [leaves.copy()]
     current_level = leaves
 
     while len(current_level) > 1:
@@ -115,13 +111,11 @@ def prove_merkle(merkle_tree, random_indx):
         returns a proof of inclusion as list of values
     """
     merkle_proof = []
-    # TODO YOUR CODE HERE
-
-    for level in merkle_tree[:-1]:  # Don't include root
-        sibling_index = random_indx ^ 1  # XOR flips last bit to get sibling
+    for level in merkle_tree[:-1]: 
+        sibling_index = random_indx ^ 1  
         if sibling_index < len(level):
             merkle_proof.append(level[sibling_index])
-        random_indx //= 2  # Move to parent index 
+        random_indx //= 2 
 
     return merkle_proof
 
@@ -135,10 +129,8 @@ def sign_challenge(challenge):
         claimed a prime
     """
     acct = get_account()
-
     addr = acct.address
     eth_sk = acct.key
-
     eth_encoded_msg = eth_account.messages.encode_defunct(text=challenge)
     eth_sig_obj = acct.sign_message(eth_encoded_msg)
 
@@ -152,34 +144,27 @@ def send_signed_msg(proof, random_leaf):
         on the contract
     """
     chain = 'bsc'
-
     acct = get_account()
     address, abi = get_contract_info(chain)
     w3 = connect_to(chain)
-
     contract = w3.eth.contract(address=address, abi=abi)
     
-    
-    # Build transaction
     tx = {
         'to': address,
         'data': contract.functions.submit(proof, random_leaf).build_transaction(
             {'from': acct.address}
         )['data'],
-        'chainId': 97,  # BSC chain ID
+        'chainId': 97, 
         'gas': 600000,
         'gasPrice': w3.to_wei('10', 'gwei'),
         'nonce': w3.eth.get_transaction_count(acct.address),
     }
     
-    # Sign using the most reliable method
     if hasattr(acct, 'sign_transaction'):
         signed = acct.sign_transaction(tx)
     else:
-        # Fallback for different Web3 versions
         signed = w3.eth.account.sign_transaction(tx, acct.key)
     
-    # Get raw transaction (handles all version cases)
     raw_tx = getattr(signed, 'rawTransaction', 
                     getattr(signed, 'raw_transaction', None))
     if raw_tx is None and isinstance(signed, dict):
@@ -188,7 +173,6 @@ def send_signed_msg(proof, random_leaf):
     if not raw_tx:
         raise ValueError("Could not extract raw transaction")
     
-    # Send and return hash
     tx_hash = w3.eth.send_raw_transaction(raw_tx)
     return tx_hash.hex()
 
