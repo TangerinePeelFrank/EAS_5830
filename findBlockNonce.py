@@ -18,7 +18,7 @@ def mine_block(k, prev_hash, transactions):
         print("mine_block expects positive integer")
         return b'\x00'
 
-    lines_bytes = b''.join([line.encode('utf-8') for line in rand_lines])
+    lines_bytes = b''.join([line.encode('utf-8') for line in transactions])
 
     target_suffix = '0' * k
 
