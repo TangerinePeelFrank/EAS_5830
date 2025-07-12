@@ -25,7 +25,7 @@ def merkle_assignment():
     tree = build_merkle(leaves)
 
     # Select a random leaf and create a proof for that leaf
-    random_leaf_index = random.randint(0, num_of_primes - 1) 
+    random_leaf_index = random.randint(1, 8191) 
     proof = prove_merkle(tree, random_leaf_index)
 
     # This is the same way the grader generates a challenge for sign_challenge()
@@ -35,10 +35,8 @@ def merkle_assignment():
 
     if sign_challenge_verify(challenge, addr, sig):
         tx_hash = send_signed_msg(proof, leaves[random_leaf_index])
-        print(f"Transaction hash: {tx_hash}")
-        #  when you are ready to attempt to claim a prime (and pay gas fees),
-        #  complete this method and run your code with the following line un-commented
-        # tx_hash = send_signed_msg(proof, leaves[random_leaf_index])
+
+
 
 
 def generate_primes(num_primes):
@@ -48,18 +46,18 @@ def generate_primes(num_primes):
     """
     primes_list = []
 
-    num = 2
+    n = 2
     while len(primes_list) < num_primes:
         is_prime = True
-        for prime in primes_list:
-            if prime * prime > num:
+        for p in primes_list:
+            if p * p > n:
                 break
-            if num % prime == 0:
+            if n % p == 0:
                 is_prime = False
                 break
         if is_prime:
-            primes_list.append(num)
-        num += 1
+            primes_list.append(n)
+        n += 1
 
     return primes_list
 
@@ -70,7 +68,13 @@ def convert_leaves(primes_list):
         returns list of primes where list entries are bytes32 encodings of primes_list entries
     """
 
-    return [Web3.solidity_keccak(['uint256'], [prime]) for prime in primes_list]
+    leaves = []
+    for p in primes_list:
+        # Convert directly to bytes32 (no additional hashing)
+        b = int.to_bytes(p, 32, 'big')
+        leaves.append(b)
+        
+    return leaves
 
 
 def build_merkle(leaves):
@@ -81,16 +85,25 @@ def build_merkle(leaves):
         the root hash produced by the "hash_pair" helper function
     """
 
-    tree = [leaves]
-    while len(tree[-1]) > 1:
-        current_layer = tree[-1]
-        next_layer = []
-        for i in range(0, len(current_layer), 2):
-            if i + 1 < len(current_layer):
-                next_layer.append(hash_pair(current_layer[i], current_layer[i + 1]))
-            else:
-                next_layer.append(hash_pair(current_layer[i], current_layer[i]))
-        tree.append(next_layer)
+    if not leaves:
+        return []
+
+    # Validate leaves are bytes32 (32 bytes)
+    assert all(isinstance(leaf, bytes) and len(leaf) == 32 for leaf in leaves), "Leaves must be bytes32"
+
+    tree = [leaves.copy()]  # Start with copy of leaves
+    current_level = leaves
+
+    while len(current_level) > 1:
+        next_level = []
+        for i in range(0, len(current_level), 2):
+            left = current_level[i]
+            right = current_level[i+1] if i+1 < len(current_level) else left
+            parent = hash_pair(left, right)
+            next_level.append(parent)
+        tree.append(next_level)
+        current_level = next_level
+
     return tree
 
 
@@ -102,13 +115,14 @@ def prove_merkle(merkle_tree, random_indx):
         returns a proof of inclusion as list of values
     """
     merkle_proof = []
-    index = random_indx
-    for layer in merkle_tree[:-1]:
-        pair_index = index ^ 1
-        if pair_index < len(layer):
-            merkle_proof.append(layer[pair_index])
-        index //= 2
-    merkle_proof.insert(0, merkle_tree[0][random_indx]) 
+    # TODO YOUR CODE HERE
+
+    for level in merkle_tree[:-1]:  # Don't include root
+        sibling_index = random_indx ^ 1  # XOR flips last bit to get sibling
+        if sibling_index < len(level):
+            merkle_proof.append(level[sibling_index])
+        random_indx //= 2  # Move to parent index 
+
     return merkle_proof
 
 
@@ -143,20 +157,40 @@ def send_signed_msg(proof, random_leaf):
     address, abi = get_contract_info(chain)
     w3 = connect_to(chain)
 
-    contract = w3.eth.contract(address=address, abi=abi)
-
-    tx = contract.functions.submit(proof, random_leaf).build_transaction({
-        'from': acct.address,
+    contract = w3.eth.contract(address=contract_address, abi=abi)
+    
+    
+    # Build transaction
+    tx = {
+        'to': contract_address,
+        'data': contract.functions.submit(proof, random_leaf).build_transaction(
+            {'from': acct.address}
+        )['data'],
+        'chainId': 97,  # BSC chain ID
+        'gas': 600000,
+        'gasPrice': w3.to_wei('10', 'gwei'),
         'nonce': w3.eth.get_transaction_count(acct.address),
-        'gas': 2000000,
-        'gasPrice': w3.to_wei('20', 'gwei')
-    })
-
-    signed_tx = w3.eth.account.sign_transaction(tx, acct.key)
-
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-
-    return tx_hash
+    }
+    
+    # Sign using the most reliable method
+    if hasattr(acct, 'sign_transaction'):
+        signed = acct.sign_transaction(tx)
+    else:
+        # Fallback for different Web3 versions
+        signed = w3.eth.account.sign_transaction(tx, acct.key)
+    
+    # Get raw transaction (handles all version cases)
+    raw_tx = getattr(signed, 'rawTransaction', 
+                    getattr(signed, 'raw_transaction', None))
+    if raw_tx is None and isinstance(signed, dict):
+        raw_tx = signed.get('rawTransaction')
+    
+    if not raw_tx:
+        raise ValueError("Could not extract raw transaction")
+    
+    # Send and return hash
+    tx_hash = w3.eth.send_raw_transaction(raw_tx)
+    return tx_hash.hex()
 
 
 # Helper functions that do not need to be modified
