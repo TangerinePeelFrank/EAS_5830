@@ -35,8 +35,8 @@ def mine_block(k, prev_hash, transactions):
             break
         nonce += 1
 
-    assert isinstance(nonce, bytes), 'nonce should be of type bytes'
-    return nonce
+    assert isinstance(nonce_bytes, bytes), 'nonce should be of type bytes'
+    return nonce_bytes
 
 
 def get_random_lines(filename, quantity):
