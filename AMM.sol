@@ -56,8 +56,8 @@ contract AMM is AccessControl{
 		uint256 qtyB;
 		uint256 swapAmt;
 
-		uint256 qtyA = ERC20(tokenA).balanceOf(address(this));
-		uint256 qtyB = ERC20(tokenB).balanceOf(address(this));
+		qtyA = ERC20(tokenA).balanceOf(address(this));
+		qtyB = ERC20(tokenB).balanceOf(address(this));
 		uint256 buyAmount;
 		address buyToken;
 
