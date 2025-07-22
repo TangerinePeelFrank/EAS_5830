@@ -50,21 +50,21 @@ def scan_blocks(chain, start_block, end_block, contract_address, eventfile='depo
     else:
         print( f"Scanning blocks {start_block} - {end_block} on {chain}" )
 
-    all_events = []
+    events_list = []
     if end_block - start_block < 30:
         event_filter = contract.events.Deposit.create_filter(from_block=start_block,to_block=end_block,argument_filters=arg_filter)
         events = event_filter.get_all_entries()
         #print( f"Got {len(events)} entries for block {block_num}" )
-        all_events.extend(events)
+        events_list.extend(events)
     else:
         for block_num in range(start_block,end_block+1):
             event_filter = contract.events.Deposit.create_filter(from_block=block_num,to_block=block_num,argument_filters=arg_filter)
             events = event_filter.get_all_entries()
             #print( f"Got {len(events)} entries for block {block_num}" )
-            all_events.extend(events)
+            events_list.extend(events)
     
-    log_entries = []
-    for evt in all_events:
+    log_list = []
+    for evt in events_list:
         data = {
             'chain': chain,
             'token': evt.args['token'],
@@ -74,7 +74,6 @@ def scan_blocks(chain, start_block, end_block, contract_address, eventfile='depo
             'address': evt.address,
             'date': datetime.fromtimestamp(w3.eth.get_block(evt.blockNumber).timestamp).strftime('%Y-%m-%d %H:%M:%S')
         }
-        log_entries.append(data)
+        log_list.append(data)
 
-    df = pd.DataFrame(log_entries)
-    df.to_csv(eventfile, index=False)
+    pd.DataFrame(log_list).to_csv(eventfile, index=False)
